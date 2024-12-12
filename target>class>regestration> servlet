@@ -1,0 +1,83 @@
+// Source code is decompiled from a .class file using FernFlower decompiler.
+package registration;
+
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet({"/RegisterServlet"})
+public class RegisterServlet extends HttpServlet {
+   private static final String DB_URL = "jdbc:mysql://localhost:3306/erp";
+   private static final String DB_USER = "root";
+   private static final String DB_PASSWORD = "Vcharan";
+
+   public RegisterServlet() {
+   }
+
+   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+      String username = request.getParameter("username");
+      String userId = request.getParameter("user_id");
+      String mobileNo = request.getParameter("mobile_no");
+      String password = request.getParameter("password");
+      String retypePassword = request.getParameter("retype_password");
+      String role = request.getParameter("role");
+      if (!password.equals(retypePassword)) {
+         response.getWriter().println("Passwords do not match.");
+      } else {
+         String hashedPassword = this.hashPassword(password);
+
+         try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/erp", "root", "Vcharan");
+            String sql = "INSERT INTO users (username, user_id, mobile_no, password, role) VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, username);
+            stmt.setString(2, userId);
+            stmt.setString(3, mobileNo);
+            stmt.setString(4, hashedPassword);
+            stmt.setString(5, role);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+               response.getWriter().println("Registration successful!");
+            } else {
+               response.getWriter().println("Error during registration. Please try again.");
+            }
+
+            stmt.close();
+            conn.close();
+         } catch (SQLException var14) {
+            var14.printStackTrace();
+            response.getWriter().println("Database error: " + var14.getMessage());
+         }
+
+      }
+   }
+
+   private String hashPassword(String password) {
+      try {
+         MessageDigest digest = MessageDigest.getInstance("SHA-256");
+         byte[] hashedBytes = digest.digest(password.getBytes());
+         StringBuilder sb = new StringBuilder();
+         byte[] var8 = hashedBytes;
+         int var7 = hashedBytes.length;
+
+         for(int var6 = 0; var6 < var7; ++var6) {
+            byte b = var8[var6];
+            sb.append(String.format("%02x", b));
+         }
+
+         return sb.toString();
+      } catch (NoSuchAlgorithmException var9) {
+         var9.printStackTrace();
+         return null;
+      }
+   }
+}
